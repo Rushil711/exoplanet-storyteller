@@ -201,3 +201,5 @@ tests/                              pytest
 ```
 
 Data source: the [NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/) TAP service, table `pscomppars`. No API key.
+
+Licensed under the MIT License. Copyright Rushil Shah, 2026.
