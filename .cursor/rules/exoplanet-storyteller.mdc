@@ -1,0 +1,19 @@
+---
+description: Conventions for the Exoplanet Storyteller harness, skill, and page
+alwaysApply: true
+---
+
+# Exoplanet Storyteller
+
+The product rule: a story may only state numbers, units, and claims that the NASA
+Exoplanet Archive record supports. Missing values are "unknown".
+
+- Prompts live in `skills/exoplanet-story-grounding/SKILL.md`. The harness loads that
+  file at runtime. Change the prompt there, not in `storyteller/harness.py`.
+- Do not let a model emit ADQL. Extend `storyteller/query.py` with a validated
+  `SearchIntent` field instead.
+- Keep archive units (parsecs, kelvin, Earth radii, Earth masses, days, AU). The
+  verifier flags conversions on purpose.
+- Never read or log `XAI_API_KEY` outside `storyteller/media.py`, and never send it
+  to the browser. Mock mode must keep working with the key unset.
+- Tests in `tests/` must pass without Ollama, without a network call, and without an API key.
