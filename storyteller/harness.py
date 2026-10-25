@@ -164,6 +164,9 @@ class Harness:
                 warning = e.user_message + " Showing results from the bundled snapshot instead."
         if rows is None:
             rows = query.run_local(intent, self.archive.catalog)
+        else:
+            # TOP cannot be used here: this TAP service applies it before ORDER BY.
+            rows = rows[: intent.limit]
         results = [self._card(r) for r in rows]
         log.info("tool_call", tool="search_planets", parser=parser, filters=len(intent.filters),
                  method=intent.method, sort=intent.sort_field, rows=len(results), source=source)

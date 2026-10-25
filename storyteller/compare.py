@@ -22,11 +22,22 @@ LABELS = {
 SOURCES = "Earth values: NASA Earth Fact Sheet (black-body temperature 254 K), Sun: IAU nominal 5772 K."
 
 
+def _fmt_ratio(r: float) -> str:
+    if r >= 100:
+        return f"{r:,.0f}"
+    if r >= 10:
+        return f"{r:.1f}"
+    if r >= 1:
+        return f"{r:.2f}".rstrip("0").rstrip(".")
+    return f"{r:.3g}"
+
+
 def _ratio_text(field: str, r: float) -> str:
     if 0.95 <= r <= 1.05:
         return "about the same as Earth" if not field.startswith("st_") else "about the same as the Sun"
     ref = "the Sun" if field.startswith("st_") else ("the Solar System" if field == "sy_pnum" else "Earth")
-    return f"{r:.3g}x {ref}" if r >= 1 else f"{r:.3g}x {ref} (1/{1 / r:.3g})"
+    shown = _fmt_ratio(r)
+    return f"{shown}x {ref}" if r >= 1 else f"{shown}x {ref} (1/{_fmt_ratio(1 / r)})"
 
 
 def compare_with_earth(rec: dict) -> dict:

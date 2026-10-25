@@ -53,13 +53,11 @@ function toast(msg) {
 
 function fmt(v) {
   if (v === null || v === undefined || v === "") return "unknown";
-  if (typeof v === "number") {
-    if (Number.isInteger(v)) return String(v);
-    const a = Math.abs(v);
-    if (a >= 100) return String(Math.round(v * 10) / 10);
-    return String(Math.round(v * 1000) / 1000);
-  }
-  return String(v);
+  if (typeof v !== "number") return String(v);
+  if (Number.isInteger(v)) return String(v);
+  // Keep the archive digits. Rounding here made 0.7365474 look like 0.737.
+  const rounded = Math.round(v * 1e8) / 1e8;
+  return String(rounded);
 }
 
 function tip(c) {
@@ -108,7 +106,7 @@ function attemptsHtml(s) {
     const fb = !a.passed && a.feedback && a.feedback.length
       ? `<details><summary>Verifier feedback sent back</summary><ul>${a.feedback.map((f) => `<li>${esc(f)}</li>`).join("")}</ul></details>`
       : "";
-    return `<li class="${cls}"><span>${a.n}</span>Attempt ${a.n} · ${esc(bits)}${fb}</li>`;
+    return `<li class="${cls}"><span>${a.n}</span> Attempt ${a.n} · ${esc(bits)}${fb}</li>`;
   });
   if (s.origin === "template") {
     items.push(`<li class="pass"><span>✓</span>Safe template, written from the record itself</li>`);

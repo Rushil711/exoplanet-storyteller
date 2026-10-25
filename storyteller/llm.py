@@ -93,7 +93,7 @@ class OllamaBackend(LLMBackend):
             "model": model,
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
             "stream": False,
-            "options": {"temperature": temperature, "num_predict": 700, "num_ctx": 4096},
+            "options": {"temperature": temperature, "num_predict": 1024, "num_ctx": 4096},
             "keep_alive": "30m",
         }
         if seed is not None:

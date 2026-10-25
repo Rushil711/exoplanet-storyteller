@@ -146,6 +146,4 @@ def mock_svg(rec: dict, direction: dict) -> str:
 <circle cx="190" cy="170" r="{star_r * 2.2:.0f}" fill="url(#star)" opacity="0.55"/>
 <circle cx="190" cy="170" r="{star_r * 0.62:.0f}" fill="url(#star)"/>
 <g transform="translate(660 470)"><circle r="{pr * 1.12:.1f}" fill="{pc1}" opacity="0.08"/><circle r="{pr:.1f}" fill="url(#pl)"/><g clip-path="url(#pc)">{bands}</g><circle r="{pr:.1f}" fill="url(#shade)"/></g>
-<rect x="24" y="{H - 64}" width="{W - 48}" height="40" rx="10" fill="#000" opacity="0.45"/>
-<text x="44" y="{H - 38}" font-family="system-ui, sans-serif" font-size="18" fill="#e8ecff">MOCK RENDER (no Grok Imagine call) - {name} - drawn from archive data</text>
 </svg>"""

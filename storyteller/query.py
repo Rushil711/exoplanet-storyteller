@@ -113,7 +113,10 @@ def build_adql(intent: SearchIntent, columns: list[str]) -> str:
         where.append(f"discoverymethod = '{intent.method}'")
     if intent.sort_field:
         where.append(f"{intent.sort_field} is not null")
-    sql = f"select top {int(intent.limit)} {','.join(columns)} from pscomppars"
+    # No TOP. On this TAP service, TOP is applied before ORDER BY, so
+    # "select top 5 ... order by pl_eqt desc" does not return the hottest rows.
+    # Callers slice to intent.limit after the ordered result comes back.
+    sql = f"select {','.join(columns)} from pscomppars"
     if where:
         sql += " where " + " and ".join(where)
     sql += f" order by {intent.sort_field or 'disc_year'} {intent.sort_dir if intent.sort_field else 'desc'}"
