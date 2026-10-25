@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exoplanet Storyteller — every story is true</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,640&family=Outfit:wght@340;480;580&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<a class="skip" href="#stage">Skip to the story</a>
+
+<header class="top">
+  <div class="brand">
+    <p class="eyebrow">NASA Exoplanet Archive · table pscomppars</p>
+    <p class="wordmark">Exoplanet Storyteller</p>
+    <p class="tagline">every story is true</p>
+  </div>
+  <div class="pills" id="pills" aria-label="Runtime status"></div>
+</header>
+
+<div class="layout">
+  <aside class="finder">
+    <form id="pick" autocomplete="off">
+      <label for="q">Find a confirmed planet</label>
+      <div class="combo">
+        <input id="q" type="text" role="combobox" aria-expanded="false" aria-controls="suggest"
+               aria-autocomplete="list" placeholder="TRAPPIST-1 e, Kepler-452 b…" spellcheck="false">
+        <ul id="suggest" role="listbox" hidden></ul>
+      </div>
+    </form>
+
+    <form id="ask">
+      <label for="nl">Or describe the world you want</label>
+      <textarea id="nl" rows="2" maxlength="400" placeholder="the hottest planet discovered in 2020"></textarea>
+      <button type="submit" class="solid" id="ask-btn">Search the archive</button>
+    </form>
+
+    <div id="interpreted" class="interpreted" hidden></div>
+    <ul id="results" class="results"></ul>
+
+    <button type="button" id="today" class="today">Planet of the day</button>
+
+    <label class="switch">
+      <input type="checkbox" id="kid">
+      <span>Kid-friendly narration <small>ages 7–10, same facts</small></span>
+    </label>
+
+    <label class="model-pick">Model
+      <select id="model"></select>
+    </label>
+
+    <section class="told" aria-labelledby="told-h">
+      <h2 id="told-h">Told this session</h2>
+      <ul id="session"><li class="quiet">Nothing yet. The first world sets the baseline.</li></ul>
+    </section>
+  </aside>
+
+  <main id="stage" aria-live="polite">
+    <section class="empty">
+      <p class="eyebrow">A planetarium desk for real worlds</p>
+      <h1>Pick a planet. Hear only what the archive can stand behind.</h1>
+      <p class="lede">Gemma, running locally, writes a short story from one planet’s NASA record. A verifier then checks every number, unit, spectral type and claim. If the story can’t be grounded, you get one built straight from the data instead — and you can see the score either way.</p>
+      <div class="featured" id="featured"></div>
+    </section>
+  </main>
+</div>
+
+<footer>
+  <p>Data: the NASA Exoplanet Archive, composite planet table <code>pscomppars</code>. Star color is estimated from <code>st_teff</code> because spectral type is missing for most planets. Stories never invent an atmosphere, water, or life.</p>
+</footer>
+<div id="toast" role="status"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

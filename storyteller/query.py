@@ -89,8 +89,11 @@ class SearchIntent(BaseModel):
 
 
 def _num(v: float) -> str:
-    # repr of a validated finite float: digits, '.', '-', 'e' only
-    s = repr(float(v))
+    """Digits only. Whole numbers stay whole, so a year is `2020` and not `2020.0`."""
+    v = float(v)
+    if v.is_integer() and abs(v) < 1e15:
+        return str(int(v))
+    s = repr(v)
     assert re.fullmatch(r"-?\d+(\.\d+)?(e[-+]?\d+)?", s), s
     return s
 
