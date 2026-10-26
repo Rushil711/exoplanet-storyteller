@@ -1,9 +1,9 @@
 """LLM backends behind one small interface.
 
-  OllamaBackend        real local Gemma via Ollama's /api/chat (structured JSON output)
-  OfflineReplayBackend clearly-labelled demo backend that replays real Gemma stories recorded by
-                       the team (data/fixtures/gemma_stories.json); it never invents text.
-Tests use their own scripted fake backend (tests/fakes.py).
+  GeminiBackend        Gemma via Google's generateContent API (the default)
+  OllamaBackend        local Gemma via Ollama's /api/chat, when LLM_BACKEND=ollama
+  OfflineReplayBackend recorded Gemma stories (data/fixtures/gemma_stories.json); it never invents text.
+Tests use their own scripted fake backend (tests/conftest.py:FakeLLM).
 """
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from pathlib import Path
 
 import httpx
 
-from .logs import get_logger
+from .logs import get_logger, redact, register_secret
 
 log = get_logger("llm")
 
@@ -175,8 +175,99 @@ class OfflineReplayBackend(LLMBackend):
                            meta={"replayed_seed": rec.get("seed"), "recorded": True})
 
 
+class GeminiBackend(LLMBackend):
+    """Gemma through the Gemini API. The key is sent as a header and never logged.
+
+    The request matches the generateContent call this project already uses for Gemma:
+    system instruction, JSON output, and a minimal thinking level. A 400 that rejects
+    thinkingConfig is retried once without it. Grounding and retries stay in the harness.
+    """
+
+    name = "gemini"
+    URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+
+    def __init__(self, api_key: str, model: str, timeout: float = 120.0,
+                 transport: httpx.BaseTransport | None = None):
+        self.api_key = (api_key or "").strip()
+        self.model = model or "gemma-4-26b-a4b-it"
+        self.label = f"Gemini API - {self.model}"
+        register_secret(self.api_key)
+        self._http = httpx.Client(timeout=httpx.Timeout(timeout, connect=10.0), transport=transport)
+
+    def health(self) -> dict:
+        if not self.api_key:
+            return {"ok": False, "detail": "GEMINI_API_KEY is not set."}
+        return {"ok": True, "detail": f"{self.model} via the Gemini API"}
+
+    def generate(self, system, prompt, schema=None, temperature=0.7, seed=None, context=None, model=None):
+        del schema, context  # the harness still passes these; JSON mode plus the skill prompt shape the reply
+        if not self.api_key:
+            raise LLMError("GEMINI_API_KEY is not set.")
+        model = model or self.model
+        gen: dict = {
+            "temperature": temperature,
+            "maxOutputTokens": 1024,
+            "responseMimeType": "application/json",
+            "thinkingConfig": {"thinkingLevel": "minimal"},
+        }
+        if seed is not None:
+            gen["seed"] = seed
+        body = {
+            "systemInstruction": {"parts": [{"text": system}]},
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": gen,
+        }
+        t0 = time.perf_counter()
+        response = self._post(model, body)
+        if response.status_code == 400 and "hinking" in response.text and "thinkingConfig" in gen:
+            gen.pop("thinkingConfig", None)
+            response = self._post(model, body)
+        if response.status_code >= 400:
+            raise self._error(response, model)
+        data = response.json()
+        text = self._text(data)
+        wall = time.perf_counter() - t0
+        usage = data.get("usageMetadata") or {}
+        tokens = usage.get("candidatesTokenCount")
+        return LLMResponse(
+            text=text, model=model, backend=self.name, latency_s=round(wall, 2), tokens=tokens,
+            meta={"prompt_tokens": usage.get("promptTokenCount")},
+        )
+
+    def _post(self, model: str, body: dict) -> httpx.Response:
+        url = self.URL.format(model=model)
+        headers = {"x-goog-api-key": self.api_key}
+        try:
+            return self._http.post(url, json=body, headers=headers)
+        except httpx.TimeoutException as e:
+            raise LLMError(f"Gemma ({model}) timed out on the Gemini API.", retryable=True) from e
+        except httpx.HTTPError as e:
+            raise LLMError("Could not reach the Gemini API.", retryable=True) from e
+
+    def _text(self, data: dict) -> str:
+        try:
+            parts = data["candidates"][0]["content"]["parts"]
+        except (KeyError, IndexError, TypeError) as e:
+            raise LLMError("Gemini API reply had no content.", retryable=True) from e
+        text = "".join(p.get("text", "") for p in parts if isinstance(p, dict) and not p.get("thought"))
+        if not text.strip():
+            raise LLMError("Gemini API reply had no content.", retryable=True)
+        return text
+
+    def _error(self, response: httpx.Response, model: str) -> LLMError:
+        status = response.status_code
+        if status in (401, 403):
+            return LLMError("Gemini rejected the API key. Check GEMINI_API_KEY in .env.")
+        snippet = redact(response.text[:200])
+        retryable = status == 429 or status >= 500
+        return LLMError(f"Gemini API returned HTTP {status} for {model}: {snippet}", retryable=retryable)
+
+
 def make_backend(settings) -> LLMBackend:
-    choice = settings.llm_backend
+    choice = (settings.llm_backend or "gemini").strip().lower()
+    if choice == "gemini" or (choice == "auto" and settings.gemini_api_key):
+        log.info("llm_backend_selected", backend="gemini", model=settings.gemma_model)
+        return GeminiBackend(settings.gemini_api_key, settings.gemma_model)
     if choice in ("ollama", "auto"):
         ob = OllamaBackend(settings.ollama_url, settings.ollama_model, settings.ollama_fast_model, settings.ollama_timeout)
         if choice == "ollama":
@@ -186,4 +277,6 @@ def make_backend(settings) -> LLMBackend:
             log.info("llm_backend_selected", backend="ollama", model=settings.ollama_model)
             return ob
         log.warning("llm_backend_fallback", reason=h["detail"], backend="offline")
+    elif choice != "offline":
+        log.warning("llm_backend_unknown", choice=choice, backend="offline")
     return OfflineReplayBackend(settings.fixtures_path, model=settings.ollama_model)

@@ -22,6 +22,7 @@ def test_status_hides_secrets_and_reports_modes(settings):
     assert body["skill"]["name"] == "exoplanet-story-grounding"
     blob = str(body).lower()
     assert "xai_api_key" not in blob
+    assert "gemini_api_key" not in blob
     assert "bearer" not in blob
 
 

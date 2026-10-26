@@ -8,8 +8,9 @@ NASA record. Then it checks every number. You see the grounding score, claim by 
 before you see the art or hear the narration.
 
 A 4-person student project for MLH Hacktoberfest. Built in Cursor. The storyteller is
-Gemma 3, running locally through Ollama. The pictures and the voice are xAI Grok Imagine
-and the xAI Voice API, with a mock mode so the whole demo runs without a key.
+Gemma, called through Google's Gemini API. Local Ollama is still available with
+`LLM_BACKEND=ollama`. The pictures and the voice are xAI Grok Imagine and the xAI Voice
+API, with a mock mode so the whole demo runs without an xAI key.
 
 ## What you can do
 
@@ -33,7 +34,7 @@ flowchart TD
   fetch --> snap[Bundled snapshot]
 
   harness --> skill[SKILL.md system prompt]
-  skill --> llm[Gemma via Ollama]
+  skill --> llm[Gemma via the Gemini API]
   skill --> replay[Offline replay of recorded Gemma stories]
 
   llm --> verify[verify_story]
@@ -62,10 +63,12 @@ returns the wrong planets.
 
 ## The three hackathon steps
 
-**Model.** Google Gemma 3, open weights, local, through Ollama. Default `gemma3:4b`,
-fast option `gemma3:1b`. Structured JSON output: `{story, numbers_used}`. If Ollama is
-not running, the app says so and replays real Gemma stories recorded by the team
-(`data/fixtures/gemma_stories.json`) instead of pretending to generate them.
+**Model.** Gemma through Google's Gemini API (`generateContent`), model `GEMMA_MODEL`
+(default `gemma-4-26b-a4b-it`). Structured JSON output: `{story, numbers_used}`. The
+same verifier and retry loop run on that reply. `LLM_BACKEND=ollama` still uses local
+Gemma (`gemma3:4b`, fast option `gemma3:1b`). `LLM_BACKEND=offline` replays real Gemma
+stories recorded by the team (`data/fixtures/gemma_stories.json`) instead of pretending
+to generate them.
 
 **Skill.** `skills/exoplanet-story-grounding/SKILL.md` follows the Agent Skills spec:
 `name` matches the folder, `description` is within 1–1024 characters, with `scripts/` and
@@ -86,7 +89,7 @@ in `logs/harness.jsonl`, with the API key redacted.
 | Track | How this project meets it |
 |---|---|
 | SpaceXSI “Make it Legendary” | Real NASA Exoplanet Archive data in, a told and illustrated world out. Built in Cursor. Image prompts go to Grok Imagine and narration goes to the xAI Voice API when `XAI_API_KEY` is set. Both paths are implemented and cached. |
-| Best Use of Gemma | Gemma 3 runs locally via Ollama and is the only writer. A strict prompt plus JSON output is what the app uses, because that is what measured well (below). `gemma3:1b` is the fast option in the model picker. |
+| Best Use of Gemma | Gemma is the only writer. `make run` calls it through the Gemini API. A strict prompt plus JSON output is what the app uses, because that is what measured well on the local runs below. `LLM_BACKEND=ollama` keeps local `gemma3:4b`, with `gemma3:1b` as the fast option. |
 | Best Open-Source AI Project | Gemma is open-weight. The skill, verifier, harness, and page are original and in this repo under Apache-2.0 for the skill. |
 
 Grok Bot planning (a bonus on the SpaceXSI track, not a requirement) is not a separate
@@ -116,31 +119,30 @@ is described from `st_teff` and a coarse color bin.
 ## Run it
 
 ```bash
-# Gemma, once per machine
-# https://ollama.com/download
-ollama serve
-ollama pull gemma3:4b          # the default. gemma3:1b is the fast option
-
-# the app
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-cp .env.example .env           # put XAI_API_KEY in .env if you have one
+cp .env.example .env           # set GEMINI_API_KEY. XAI_API_KEY is optional.
 make run                       # http://127.0.0.1:8741
 ```
 
+Local Ollama is optional. For that path, set `LLM_BACKEND=ollama`, then `ollama serve`
+and `ollama pull gemma3:4b` (`gemma3:1b` is the fast option).
+
 `make test` runs the suite. It does not need Ollama, a network connection, or an API key.
 
-Without Ollama, leave `LLM_BACKEND=auto`. The app notices Ollama is down and serves the
-recorded Gemma stories, labeled as a replay. Without `XAI_API_KEY`, art is a data-drawn
-SVG and the audio element is a short chime, both labeled as mock. The Listen button reads
-the actual story with the browser’s speech synthesis.
+`LLM_BACKEND=offline` serves the recorded Gemma stories, labeled as a replay. Without
+`XAI_API_KEY`, art is a data-drawn SVG and the audio element is a short chime, both
+labeled as mock. The Listen button reads the actual story with the browser’s speech
+synthesis.
 
 Useful `.env` knobs (see `.env.example`):
 
 | variable | purpose |
 |---|---|
-| `LLM_BACKEND` | `auto` (default), `ollama`, or `offline` |
-| `OLLAMA_MODEL` | default `gemma3:4b` |
+| `LLM_BACKEND` | `gemini` (default), `ollama`, `offline`, or `auto` |
+| `GEMINI_API_KEY` | server-side only. Required for live Gemini stories |
+| `GEMMA_MODEL` | Gemini model id. Empty uses `gemma-4-26b-a4b-it` |
+| `OLLAMA_MODEL` | local model when `LLM_BACKEND=ollama`, default `gemma3:4b` |
 | `OLLAMA_FAST_MODEL` | `gemma3:1b`, shown in the model picker when it is pulled |
 | `STORY_MAX_RETRIES` | extra attempts after the first, default 2 |
 | `XAI_API_KEY` | server-side only. Leave empty for mock media |

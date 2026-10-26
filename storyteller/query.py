@@ -5,7 +5,7 @@ Safety model:
   * `SearchIntent` is a pydantic model whose fields, operators and discovery methods are closed
     enums and whose values are finite floats, so no user or model text is ever interpolated.
   * Free text is parsed by deterministic rules first; the optional LLM parser only fills the same
-    schema (Ollama structured output) and its JSON is validated before use.
+    schema (structured JSON) and its JSON is validated before use.
 """
 from __future__ import annotations
 
@@ -322,7 +322,7 @@ def parse_with_llm(text: str, llm) -> SearchIntent:
         if data.get("method") not in Method.__args__:
             data["method"] = None
         data = {k: data.get(k) for k in ("filters", "method", "sort_field", "sort_dir") if k in data}
-        data["notes"] = ["Interpreted by the local Gemma model, validated against the field whitelist."]
+        data["notes"] = ["Interpreted by Gemma, then validated against the field whitelist."]
         return SearchIntent.model_validate(data)
     except (json.JSONDecodeError, ValidationError, TypeError, AttributeError) as e:
         raise ValueError(f"LLM intent did not validate: {e}") from e

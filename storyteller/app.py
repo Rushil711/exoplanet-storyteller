@@ -55,6 +55,7 @@ def create_app(settings: Settings | None = None, archive: ArchiveClient | None =
     settings = settings or Settings.from_env()
     setup_logging(settings.log_file)
     register_secret(settings.xai_api_key)
+    register_secret(settings.gemini_api_key)
 
     skill = skill or load_skill(settings.skill_dir)
     if archive is None:

@@ -21,8 +21,10 @@ shows its work. The rule is that every number in a story comes from the NASA Exo
   `query.build_adql` is the only function that produces a query.
 - The archive's units are the story's units. No Celsius, no light-years, no kilometers in a story.
   Say "unknown" for null fields. Do not invent atmospheres, water, moons, or composition.
-- `XAI_API_KEY` is read from the environment on the server. It must not appear in the frontend,
-  in git, in cached media, or in logs. `storyteller/logs.py` redacts it.
+- `GEMINI_API_KEY` and `XAI_API_KEY` are read from the environment on the server. They must
+  not appear in the frontend, in git, in cached media, or in logs. `storyteller/logs.py`
+  redacts registered secrets. `make run` calls Gemma through the Gemini API.
+  `LLM_BACKEND=ollama` is the local Ollama path.
 - New model behavior goes behind `storyteller/llm.py`. Tests use `tests/conftest.py:FakeLLM`.
 - A change to the verifier needs a test, including a sentence that should pass and a planted
   mistake that should fail. `tests/test_verifier.py` walks the whole catalog's template stories.
@@ -35,4 +37,4 @@ make test
 make run          # http://127.0.0.1:8741
 ```
 
-`LLM_BACKEND=offline APP_MOCK_MEDIA=1` runs with no Ollama and no xAI key.
+`LLM_BACKEND=offline APP_MOCK_MEDIA=1` runs with no Gemini key, no Ollama, and no xAI key.

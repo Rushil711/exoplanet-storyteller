@@ -16,7 +16,9 @@ def _bool(name: str, default: str = "0") -> bool:
 
 @dataclass
 class Settings:
-    llm_backend: str = "auto"  # auto | ollama | offline
+    llm_backend: str = "gemini"  # gemini | ollama | offline | auto
+    gemini_api_key: str = field(default="", repr=False)
+    gemma_model: str = "gemma-4-26b-a4b-it"
     ollama_url: str = "http://localhost:11434"
     ollama_model: str = "gemma3:4b"
     ollama_fast_model: str = "gemma3:1b"
@@ -49,7 +51,9 @@ class Settings:
         mock_raw = os.getenv("APP_MOCK_MEDIA", "auto").strip().lower()
         mock = (not key) if mock_raw in ("", "auto") else mock_raw in ("1", "true", "yes", "on")
         s = cls(
-            llm_backend=os.getenv("LLM_BACKEND", "auto").strip().lower(),
+            llm_backend=os.getenv("LLM_BACKEND", "gemini").strip().lower(),
+            gemini_api_key=os.getenv("GEMINI_API_KEY", "").strip(),
+            gemma_model=os.getenv("GEMMA_MODEL", "").strip() or cls.gemma_model,
             ollama_url=os.getenv("OLLAMA_URL", cls.ollama_url).rstrip("/"),
             ollama_model=os.getenv("OLLAMA_MODEL", cls.ollama_model),
             ollama_fast_model=os.getenv("OLLAMA_FAST_MODEL", cls.ollama_fast_model),

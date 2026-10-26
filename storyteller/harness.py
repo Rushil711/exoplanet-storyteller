@@ -143,7 +143,7 @@ class Harness:
             raise ArchiveError("That request is too long. Try one sentence.", 400)
         intent = query.parse_rules(text)
         parser = "rules"
-        if intent.is_empty and getattr(self.llm, "name", "") == "ollama":
+        if intent.is_empty and getattr(self.llm, "name", "") in ("ollama", "gemini"):
             try:
                 intent = query.parse_with_llm(text, self.llm)
                 parser = "gemma"
